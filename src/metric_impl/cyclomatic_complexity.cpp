@@ -9,8 +9,6 @@
 #include <string>
 #include <string_view>
 
-using namespace std::string_view_literals;
-
 namespace analyser::metric::metric_impl {
 
 std::string CyclomaticComplexityMetric::Name() const { return "cyclomatic_complexity"; }
