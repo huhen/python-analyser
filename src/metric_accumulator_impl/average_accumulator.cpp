@@ -18,6 +18,10 @@ void AverageAccumulator::Accumulate(const metric::MetricResult &metric_result) {
 }
 
 void AverageAccumulator::Finalize() {
+    if (is_finalized) {
+        return;
+    }
+
     if (count != 0) {
         average = static_cast<double>(sum) / count;
     }

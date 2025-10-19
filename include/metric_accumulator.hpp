@@ -35,14 +35,13 @@ struct MetricsAccumulator {
             throw std::runtime_error(std::format("Accumulator with name '{}' does not exist", metric_name));
         }
 
-        auto *acc_ptr = dynamic_cast<Accumulator *>(it->second);
+        auto *acc_ptr = dynamic_cast<Accumulator *>(it->second.get());
         if (!acc_ptr) {
             throw std::runtime_error(std::format("Accumulator with name '{}' incorrect type", metric_name));
         }
 
-        if (!acc_ptr->is_finalized) {
-            throw std::runtime_error(std::format("Accumulator with name '{}' not finalized", metric_name));
-        }
+        acc_ptr->Finalize();
+
         return *acc_ptr;
     }
 
