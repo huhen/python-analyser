@@ -15,19 +15,21 @@ std::string CyclomaticComplexityMetric::Name() const { return "cyclomatic_comple
 
 MetricResult::ValueType CyclomaticComplexityMetric::CalculateImpl(const function::Function &f) const {
     // clang-format off
-    static constexpr std::array<std::string_view, 12> keywords = {
-        "(if_", 
-        "(else_", 
-        "(elif_", 
-        "(while_", 
-        "(for_", 
-        "(try_", 
-        "(except_", 
-        "(finally_", 
-        "(match_", 
-        "(case_", 
-        "(assert_", 
-        "(conditional_"
+    static constexpr std::array<std::string_view, 14> keywords = {
+        "if_statement",
+        "if_clause", 
+        "else_clause", 
+        "elif_clause", 
+        "while_statement", 
+        "for_statement", 
+        "for_in_clause", 
+        "try_statement", 
+        "except_clause", 
+        "finally_clause", 
+        "match_statement", 
+        "case_clause", 
+        "assert_statement", 
+        "conditional_expression"
     };
 
     return static_cast<int>(
@@ -35,7 +37,13 @@ MetricResult::ValueType CyclomaticComplexityMetric::CalculateImpl(const function
             f.ast |
             vs::split('\n') |
             vs::transform([](const auto &line) {
-                return std::string_view{vs::drop_while(line, ::isspace)};
+                auto trimmed = std::string_view{
+                    vs::drop_while(line, ::isspace) | vs::drop_while([](const auto &c) {
+                        return c=='(';
+                    })};
+                constexpr std::string_view alternative_prefix = "alternative: (";
+                return trimmed.starts_with(alternative_prefix) ?
+                    trimmed.substr(alternative_prefix.length()) : trimmed;
             }),
             [](const auto &line) {
                 return rs::any_of(keywords, [&line](const auto &keyword) {
