@@ -15,6 +15,7 @@ MetricResult::ValueType CodeLinesCountMetric::CalculateImpl(const function::Func
     static auto not_comment = boyer_moore_not_contains("(comment");
 
     auto res = f.ast | vs::split('\n') | vs::filter(not_comment) |
+               vs::transform([](const auto &line) { return line | vs::split('-'); }) | vs::join |
                vs::transform([](const auto &range) -> std::optional<int> {
                    auto str_view = std::string_view{range};
                    if (auto start_pos = str_view.find('['); start_pos != std::string_view::npos) {
