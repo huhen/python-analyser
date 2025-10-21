@@ -2,30 +2,15 @@
 #include <unistd.h>
 
 #include <algorithm>
-#include <any>
-#include <array>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <ranges>
-#include <sstream>
 #include <string>
-#include <variant>
 #include <vector>
 
 #include "metric.hpp"
 
-namespace rv = std::ranges::views;
-namespace rs = std::ranges;
-
 namespace analyser::metric_accumulator {
 
 struct IAccumulator {
-    virtual void Accumulate(const metric::MetricResult& metric_result) = 0;
+    virtual void Accumulate(const metric::MetricResult &metric_result) = 0;
     virtual void Finalize() = 0;
     virtual void Reset() = 0;
     virtual ~IAccumulator() = default;
@@ -36,15 +21,31 @@ protected:
 
 struct MetricsAccumulator {
     template <typename Accumulator>
-    void RegisterAccumulator(const std::string& metric_name, std::unique_ptr<Accumulator> acc) {
-        // здесь ваш код
+    void RegisterAccumulator(const std::string &metric_name, std::unique_ptr<Accumulator> acc) {
+        auto [_, ok] = accumulators.try_emplace(metric_name, std::move(acc));
+        if (!ok) {
+            throw std::runtime_error(std::format("Accumulator with name '{}' already exists", metric_name));
+        }
     }
+
     template <typename Accumulator>
-    const Accumulator& GetFinalizedAccumulator(const std::string& metric_name) const {
-        // здесь ваш код
+    const Accumulator &GetFinalizedAccumulator(const std::string &metric_name) const {
+        const auto &it = accumulators.find(metric_name);
+        if (it == accumulators.end()) {
+            throw std::runtime_error(std::format("Accumulator with name '{}' does not exist", metric_name));
+        }
+
+        auto *acc_ptr = dynamic_cast<Accumulator *>(it->second.get());
+        if (!acc_ptr) {
+            throw std::runtime_error(std::format("Accumulator with name '{}' incorrect type", metric_name));
+        }
+
+        acc_ptr->Finalize();
+
+        return *acc_ptr;
     }
-    void AccumulateNextFunctionResults(
-        const std::vector<metric::MetricResult>& metric_results) const;
+
+    void AccumulateNextFunctionResults(const std::vector<metric::MetricResult> &metric_results) const;
 
     void ResetAccumulators();
 
@@ -52,4 +53,4 @@ private:
     std::unordered_map<std::string, std::shared_ptr<IAccumulator>> accumulators;
 };
 
-} // namespace analyser::metric_accumulator
+}  // namespace analyser::metric_accumulator
